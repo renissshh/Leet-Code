@@ -1,0 +1,115 @@
+
+import java.util.*;
+
+class LFUCache {
+
+    class Node {
+        int key;
+        int value;
+        int freq;
+
+        Node(int key, int value) {
+            this.key = key;
+            this.value = value;
+            this.freq = 1;
+        }
+    }
+
+    int capacity;
+    int minFreq;
+
+    HashMap<Integer, Node> cache;
+    HashMap<Integer, LinkedHashSet<Integer>> freqMap;
+
+    public LFUCache(int capacity) {
+
+        this.capacity = capacity;
+        this.minFreq = 0;
+
+        cache = new HashMap<>();
+        freqMap = new HashMap<>();
+    }
+
+    public int get(int key) {
+
+        if (!cache.containsKey(key)) {
+            return -1;
+        }
+
+        Node node = cache.get(key);
+
+        updateFreq(node);
+
+        return node.value;
+    }
+
+    public void put(int key, int value) {
+
+        if (capacity == 0) {
+            return;
+        }
+
+        // Update existing key
+        if (cache.containsKey(key)) {
+
+            Node node = cache.get(key);
+
+            node.value = value;
+
+            updateFreq(node);
+
+            return;
+        }
+
+        // Remove LFU key if cache is full
+        if (cache.size() == capacity) {
+
+            LinkedHashSet<Integer> keys = freqMap.get(minFreq);
+
+            int removeKey = keys.iterator().next();
+
+            keys.remove(removeKey);
+
+            cache.remove(removeKey);
+
+            if (keys.isEmpty()) {
+                freqMap.remove(minFreq);
+            }
+        }
+
+        // Insert new key
+        Node newNode = new Node(key, value);
+
+        cache.put(key, newNode);
+
+        freqMap.putIfAbsent(1, new LinkedHashSet<>());
+
+        freqMap.get(1).add(key);
+
+        minFreq = 1;
+    }
+
+    private void updateFreq(Node node) {
+
+        int oldFreq = node.freq;
+
+        LinkedHashSet<Integer> oldKeys = freqMap.get(oldFreq);
+
+        oldKeys.remove(node.key);
+
+        if (oldKeys.isEmpty()) {
+
+            freqMap.remove(oldFreq);
+
+            if (minFreq == oldFreq) {
+                minFreq++;
+            }
+        }
+
+        node.freq++;
+
+        freqMap.putIfAbsent(node.freq, new LinkedHashSet<>());
+
+        freqMap.get(node.freq).add(node.key);
+    }
+}
